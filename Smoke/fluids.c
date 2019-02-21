@@ -32,6 +32,8 @@ const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
 
+int   legend = 0;				//toggles the colour legend
+
 
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
@@ -350,6 +352,7 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
 	  case 'a': frozen = 1-frozen; break;
+	  case 'l': legend = 1-legend; break;
 	  case 'q': exit(0);
 	}
 }
@@ -398,6 +401,7 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+	printf("l:	   toggle the colour map legend on/off\n");
 	printf("q:     quit\n\n");
 
 	glutInit(&argc, argv);
