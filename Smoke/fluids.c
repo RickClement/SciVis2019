@@ -6,6 +6,7 @@
 #include <stdio.h>              //for printing the help text
 #include <math.h>               //for various math functions
 #include <GL/glut.h>            //the GLUT graphics library
+#include "Quad.h"
 
 
 
@@ -31,8 +32,6 @@ const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
-
-int   legend = 0;				//toggles the colour legend
 
 
 
@@ -61,6 +60,19 @@ void init_simulation(int n)
 	for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
 	{ vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
 }
+
+
+void drawColorLegend(){
+    Quad q;
+    glColor3f(1,0,0);
+    q.addPoint(5,5,0);
+    q.addPoint(5,30,0);
+    q.addPoint(winWidth-5,30,0);
+    q.addPoint(winWidth-5,5,0);
+    q.draw();
+    //printf("Ik heb een quad gemaakt!\n");
+}
+
 
 
 //FFT: Execute the Fast Fourier Transform on the dataset 'vx'.
@@ -203,9 +215,9 @@ void rainbow(float value,float* R,float* G,float* B)
    const float dx=0.8;
    if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
-   *R = max(1.0,(3-fabs(value-4)-fabs(value-5))/2.0);
-   *G = max(1.0,(4-fabs(value-2)-fabs(value-4))/2.0);
-   *B = max(1.0,(3-fabs(value-1)-fabs(value-2))/2.0);
+   *R = max(1.0,(float)((3-fabs(value-4)-fabs(value-5))/2.0));
+   *G = max(1.0,(float)((4-fabs(value-2)-fabs(value-4))/2.0));
+   *B = max(1.0,(float)((3-fabs(value-1)-fabs(value-2))/2.0));
 }
 
 //set_colormap: Sets three different types of colormaps
@@ -254,6 +266,8 @@ void direction_to_color(float x, float y, int method)
 //visualize: This is the main visualization function
 void visualize(void)
 {
+    drawColorLegend();
+
 	int        i, j, idx; double px,py;
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
@@ -263,7 +277,8 @@ void visualize(void)
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	for (j = 0; j < DIM - 1; j++)			//draw smoke
 	{
-		glBegin(GL_TRIANGLE_STRIP);
+
+	    glBegin(GL_TRIANGLE_STRIP);
 
 		i = 0;
 		px = wn + (fftw_real)i * wn;
@@ -284,6 +299,8 @@ void visualize(void)
 			idx = (j * DIM) + (i + 1);
 			set_colormap(rho[idx]);
 			glVertex2f(px, py);
+
+
 		}
 
 		px = wn + (fftw_real)(DIM - 1) * wn;
@@ -352,7 +369,6 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
 	  case 'a': frozen = 1-frozen; break;
-	  case 'l': legend = 1-legend; break;
 	  case 'q': exit(0);
 	}
 }
@@ -387,6 +403,9 @@ void drag(int mx, int my)
 }
 
 
+
+
+
 //main: The main program
 int main(int argc, char **argv)
 {
@@ -401,8 +420,8 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
-	printf("l:	   toggle the colour map legend on/off\n");
 	printf("q:     quit\n\n");
+
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
@@ -414,7 +433,9 @@ int main(int argc, char **argv)
 	glutKeyboardFunc(keyboard);
 	glutMotionFunc(drag);
 
+
 	init_simulation(DIM);	//initialize the simulation data structures
+
 	glutMainLoop();			//calls do_one_simulation_step, keyboard, display, drag, reshape
 	return 0;
 }
