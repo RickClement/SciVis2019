@@ -32,8 +32,7 @@ const int COLOR_RAINBOW=1;
 const int COLOR_BANDS=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
-
-
+int   numcols = 256;			//parameterises the number of colours in the colourmap
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
 
@@ -369,6 +368,8 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
 	  case 'a': frozen = 1-frozen; break;
+	  case '+': if(numcols < 256) param += 1; break;
+	  case '-': if(numcols > 2)   param -= 1; break;
 	  case 'q': exit(0);
 	}
 }
@@ -420,6 +421,8 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+	printf("+      increase colours in the colourmap\n")
+	printf("-      decrease colours in the colourmap\n")
 	printf("q:     quit\n\n");
 
 
