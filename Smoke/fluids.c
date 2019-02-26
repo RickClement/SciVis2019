@@ -29,7 +29,7 @@ int   draw_smoke = 0;           //draw the smoke or not
 int   draw_vecs = 1;            //draw the vector field or not
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, banded
 const int COLOR_RAINBOW=1;
-const int COLOR_BANDS=2;
+const int COLOR_HEAT=2;
 int   scalar_col = 0;           //method for scalar coloring
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
@@ -59,20 +59,6 @@ void init_simulation(int n)
 	for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
 	{ vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
 }
-
-
-void drawColorLegend(){
-    Quad q;
-    glColor3f(1,0,0);
-    q.addPoint(5,5,0);
-    q.addPoint(5,30,0);
-    q.addPoint(winWidth-5,30,0);
-    q.addPoint(winWidth-5,5,0);
-    q.draw();
-    //printf("Ik heb een quad gemaakt!\n");
-}
-
-
 
 //FFT: Execute the Fast Fourier Transform on the dataset 'vx'.
 //     'dirfection' indicates if we do the direct (1) or inverse (-1) Fourier Transform
@@ -219,6 +205,17 @@ void rainbow(float value,float* R,float* G,float* B)
    *B = max(1.0,(float)((3-fabs(value-1)-fabs(value-2))/2.0));
 }
 
+//altmap: Implements an alternative colour palette.
+void heatmap(float value, float* R, float* G, float* B)
+{
+   const float dx=0.8;
+   if (value<0) value=0; if (value>1) value=1;
+   value = (6-2*dx)*value+dx;
+   *R = max(1.0,(float)((6-fabs(value-3)-fabs(value-4))/2.0));
+   *G = max(1.0,(float)((4-fabs(value-4)-fabs(value-4))/2.0));
+   *B = max(1.0,(float)((3-fabs(value-5)-fabs(value-5))/2.0));
+}
+
 //set_colormap: Sets three different types of colormaps
 void set_colormap(float vy)
 {
@@ -230,12 +227,16 @@ void set_colormap(float vy)
        R = G = B = vy;
    }
    else if (scalar_col==COLOR_RAINBOW)
-       rainbow(vy,&R,&G,&B);
-   else if (scalar_col==COLOR_BANDS)
        {
           vy *= numcols;
           vy = (int)(vy); vy/= numcols;
 	      rainbow(vy,&R,&G,&B);
+	   }
+   else if (scalar_col==COLOR_HEAT)
+       {
+          vy *= numcols;
+          vy = (int)(vy); vy/= numcols;
+	      heatmap(vy,&R,&G,&B);
 	   }
 
    glColor3f(R,G,B);
@@ -264,6 +265,38 @@ void direction_to_color(float x, float y, int method)
 	{ r = g = b = 1; }
 	glColor3f(r,g,b);
 }
+
+//drawColorLegend: Draws the colour legend using the current colour map.
+void drawColorLegend(){
+    
+    Quad q;
+    glColor3f(1,0,0);
+    q.addPoint(5,5,0);
+    q.addPoint(5,30,0);
+    q.addPoint(winWidth-5,30,0);
+    q.addPoint(winWidth-5,5,0);
+    q.draw();
+    //printf("Ik heb een quad gemaakt!\n");
+    
+    /*
+    // The below does not work, use at your own peril!
+    float interval = 1 / numcols;
+    float value = 0;
+    
+    Quad q;
+    while(value < 1){
+		set_colormap(value);
+		q.addPoint(value, 5, 0);
+		q.addPoint(value, 30, 0);
+		q.addPoint(value*winWidth, 30, 0);
+		q.addPoint(value*winWidth, 5, 0);
+		q.draw();
+		
+		value += interval;
+	}
+	*/
+}
+
 
 //visualize: This is the main visualization function
 void visualize(void)
@@ -369,7 +402,7 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_smoke==0) draw_vecs = 1; break;
 	  case 'y': draw_vecs = 1 - draw_vecs;
 		    if (draw_vecs==0) draw_smoke = 1; break;
-	  case 'm': scalar_col++; if (scalar_col>COLOR_BANDS) scalar_col=COLOR_BLACKWHITE; break;
+	  case 'm': scalar_col++; if (scalar_col>COLOR_HEAT) scalar_col=COLOR_BLACKWHITE; break;
 	  case 'a': frozen = 1-frozen; break;
 	  case '+': if(numcols < 255) numcols += 1; break;
 	  case '-': if(numcols > 1)   numcols -= 1; break;
