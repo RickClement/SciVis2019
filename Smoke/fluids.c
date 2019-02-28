@@ -404,7 +404,7 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_smoke==0) draw_vecs = 1; break;
 	  case 'y': draw_vecs = 1 - draw_vecs;
 		    if (draw_vecs==0) draw_smoke = 1; break;
-	  case 'm': scalar_col++; if (scalar_col>COLOR_HEAT) scalar_col=COLOR_BLACKWHITE; break;
+	  case 'm': scalar_col = (scalar_col + 1) % 3; break;
 	  case 'a': frozen = 1-frozen; break;
 	  case '+': if(numcols < 255) numcols += 1; break;
 	  case '-': if(numcols > 1)   numcols -= 1; break;
