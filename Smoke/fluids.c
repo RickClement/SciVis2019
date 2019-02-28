@@ -285,7 +285,7 @@ void drawColorLegend(){
     
 	glBegin(GL_QUAD_STRIP);
 	interval = 1 / (float) numcols;
-    while(value < 1){
+    while(value <= 1){
 		set_colormap(value);
 		width = value * winWidth;
 		glVertex2i(width,15);
