@@ -205,14 +205,14 @@ void rainbow(float value,float* R,float* G,float* B)
    *B = max(1.0,(float)((3-fabs(value-1)-fabs(value-2))/2.0));
 }
 
-//altmap: Implements an alternative colour palette.
+//heatmap: Implements an alternative colour palette.
 void heatmap(float value, float* R, float* G, float* B)
 {
    const float dx=0.8;
    if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
    *R = max(1.0,(float)((6-fabs(value-3)-fabs(value-4))/2.0));
-   *G = max(1.0,(float)((4-fabs(value-4)-fabs(value-4))/2.0));
+   *G = max(1.0,(float)((4-fabs(value-4)-fabs(value-5))/2.0));
    *B = max(1.0,(float)((3-fabs(value-5)-fabs(value-5))/2.0));
 }
 
@@ -268,7 +268,7 @@ void direction_to_color(float x, float y, int method)
 
 //drawColorLegend: Draws the colour legend using the current colour map.
 void drawColorLegend(){
-    
+    /*
     Quad q;
     glColor3f(1,0,0);
     q.addPoint(5,5,0);
@@ -277,24 +277,26 @@ void drawColorLegend(){
     q.addPoint(winWidth-5,5,0);
     q.draw();
     //printf("Ik heb een quad gemaakt!\n");
+    */
     
-    /*
-    // The below does not work, use at your own peril!
-    float interval = 1 / numcols;
+    float interval;
     float value = 0;
+    float width = 0;
     
-    Quad q;
+	glBegin(GL_QUAD_STRIP);
+	interval = 1 / (float) numcols;
     while(value < 1){
 		set_colormap(value);
-		q.addPoint(value, 5, 0);
-		q.addPoint(value, 30, 0);
-		q.addPoint(value*winWidth, 30, 0);
-		q.addPoint(value*winWidth, 5, 0);
-		q.draw();
+		width = value * winWidth;
+		glVertex2i(width,15);
+		glVertex2i(width,0);
+		glVertex2i(width+interval,0);
+		glVertex2i(width+interval,15);
 		
 		value += interval;
 	}
-	*/
+	glEnd();
+	
 }
 
 
