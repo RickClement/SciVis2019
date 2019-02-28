@@ -354,8 +354,6 @@ void visualize(void)
 			variable = getVariable(idx);
 			set_colormap(variable);
 			glVertex2f(px, py);
-
-
 		}
 
 		px = wn + (fftw_real)(DIM - 1) * wn;
