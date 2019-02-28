@@ -27,10 +27,14 @@ int   color_dir = 0;            //use direction color-coding or not
 float vec_scale = 1000;			//scaling of hedgehogs
 int   draw_smoke = 0;           //draw the smoke or not
 int   draw_vecs = 1;            //draw the vector field or not
-const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, banded
+const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, heat
 const int COLOR_RAINBOW=1;
 const int COLOR_HEAT=2;
+const int VIS_DENSITY=0;
+const int VIS_VELOCITY=1;
+const int VIS_FORCE=2;
 int   scalar_col = 0;           //method for scalar coloring
+int   vis = 0;
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
 
@@ -205,7 +209,7 @@ void rainbow(float value,float* R,float* G,float* B)
    *B = max(1.0,(float)((3-fabs(value-1)-fabs(value-2))/2.0));
 }
 
-//heatmap: Implements an alternative colour palette.
+//heatmap: Implements a red->yellow->white heat inspired colour palette.
 void heatmap(float value, float* R, float* G, float* B)
 {
    const float dx=0.8;
@@ -299,6 +303,13 @@ void drawColorLegend(){
 	
 }
 
+fftw_real getVariable(int idx){
+	switch(vis){
+			case VIS_DENSITY:  return rho[idx];
+			case VIS_VELOCITY: return sqrt((pow(vx[idx],2)+pow(vy[idx],2)));
+			case VIS_FORCE:    return sqrt((pow(fx[idx],2)+pow(fy[idx],2)));
+		}
+}
 
 //visualize: This is the main visualization function
 void visualize(void)
@@ -308,6 +319,8 @@ void visualize(void)
 	int        i, j, idx; double px,py;
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
+	
+	fftw_real variable;
 
 	if (draw_smoke)
 	{
@@ -321,7 +334,10 @@ void visualize(void)
 		px = wn + (fftw_real)i * wn;
 		py = hn + (fftw_real)j * hn;
 		idx = (j * DIM) + i;
-		glColor3f(rho[idx],rho[idx],rho[idx]);
+		
+		variable = getVariable(idx);
+		
+		glColor3f(variable,variable,variable);
 		glVertex2f(px,py);
 
 		for (i = 0; i < DIM - 1; i++)
@@ -329,12 +345,14 @@ void visualize(void)
 			px = wn + (fftw_real)i * wn;
 			py = hn + (fftw_real)(j + 1) * hn;
 			idx = ((j + 1) * DIM) + i;
-			set_colormap(rho[idx]);
+			variable = getVariable(idx);
+			set_colormap(variable);
 			glVertex2f(px, py);
 			px = wn + (fftw_real)(i + 1) * wn;
 			py = hn + (fftw_real)j * hn;
 			idx = (j * DIM) + (i + 1);
-			set_colormap(rho[idx]);
+			variable = getVariable(idx);
+			set_colormap(variable);
 			glVertex2f(px, py);
 
 
@@ -343,7 +361,8 @@ void visualize(void)
 		px = wn + (fftw_real)(DIM - 1) * wn;
 		py = hn + (fftw_real)(j + 1) * hn;
 		idx = ((j + 1) * DIM) + (DIM - 1);
-		set_colormap(rho[idx]);
+		variable = getVariable(idx);
+		set_colormap(variable);
 		glVertex2f(px, py);
 		glEnd();
 	}
@@ -406,6 +425,7 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col = (scalar_col + 1) % 3; break;
 	  case 'a': frozen = 1-frozen; break;
+	  case 'b': vis = (vis + 1) % 3; break;
 	  case '+': if(numcols < 255) numcols += 1; break;
 	  case '-': if(numcols > 1)   numcols -= 1; break;
 	  case 'q': exit(0);
@@ -459,6 +479,7 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+	printf("b:     toggle through visualisations\n");
 	printf("+      increase colours in the colourmap\n");
 	printf("-      decrease colours in the colourmap\n");
 	printf("q:     quit\n\n");
