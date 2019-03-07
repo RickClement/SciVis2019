@@ -1,2 +1,0 @@
-fluids.o: fluids.c
-Quad.o: Quad.cpp
