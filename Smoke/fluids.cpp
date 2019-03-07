@@ -6,6 +6,7 @@
 #include <stdio.h>              //for printing the help text
 #include <math.h>               //for various math functions
 #include <GL/glut.h>            //the GLUT graphics library
+#include <algorithm>
 #include "Quad.h"
 #include "glui.h"
 
@@ -39,8 +40,13 @@ int   scalar_col = 0;           //method for scalar coloring
 int   vis = 0;
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
+float minValueData = 0;
+float maxValueData = 0;
+
+GLUI *glui;
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
+
 
 //init_simulation: Initialize simulation data structures as a function of the grid size 'n'.
 //                 Although the simulation takes place on a 2D grid, we allocate all data structures as 1D arrays,
@@ -67,7 +73,7 @@ void init_simulation(int n)
 }
 
 //FFT: Execute the Fast Fourier Transform on the dataset 'vx'.
-//     'dirfection' indicates if we do the direct (1) or inverse (-1) Fourier Transform
+//     'direction' indicates if we do the direct (1) or inverse (-1) Fourier Transform
 void FFT(int direction,void* vx)
 {
 	if(direction==1) rfftwnd_one_real_to_complex(plan_rc,(fftw_real*)vx,(fftw_complex*)vx);
@@ -305,13 +311,72 @@ void drawColorLegend(){
 	
 }
 
+//Probably something wrong with it: array size seems to remain at 1. I don't get this data structure...
+int getSizeArray(fftw_real *array){
+    /**
+    int size = sizeof(array)/sizeof(array[0]);
+    return size;
+     **/
+     /**
+     int size = 0;
+     fftw_real j = 1;
+    while (j != 0){
+        j = array[size];
+        size++;
+    }
+    return size;
+    **/
+    return DIM * DIM;
+}
+
+void updateMinValue(fftw_real *data) {
+
+    int arraySize = getSizeArray(data);
+	fftw_real minValue = 9999;
+
+    for (int i = 0; i < arraySize; i++) {
+        if (data[i] < minValue) {
+            minValue = data[i];
+        }
+    }
+    minValueData = minValue;
+    glui->sync_live();
+
+}
+
+void updateMaxValue(fftw_real *data) {
+
+    int arraySize = getSizeArray(data);
+	fftw_real maxValue = 0;
+
+    for (int i = 0; i < arraySize; i++) {
+        if (data[i] > maxValue) {
+            maxValue = data[i];
+        }
+    }
+    maxValueData = maxValue;
+    glui->sync_live();
+
+
+}
+
+void updateMinMaxValues(fftw_real *data){
+	updateMinValue(data);
+	updateMaxValue(data);
+
+}
+
 fftw_real getVariable(int idx){
 	switch(vis){
-			case VIS_DENSITY:  return rho[idx];
+			case VIS_DENSITY: updateMinMaxValues(rho); return rho[idx];
+            //case VIS_DENSITY:  return rho[idx];
 			case VIS_VELOCITY: return sqrt((pow(vx[idx],2)+pow(vy[idx],2)));
 			case VIS_FORCE:    return sqrt((pow(fx[idx],2)+pow(fy[idx],2)));
 		}
 }
+
+
+
 
 //visualize: This is the main visualization function
 void visualize(void)
@@ -461,15 +526,30 @@ void drag(int mx, int my)
 	lmx = mx; lmy = my;
 }
 
-void GLUI_test(){
+void GLUI_interface(GLUI *glui){
 
-    GLUI *glui = GLUI_Master.create_glui( "GLUI", 0, 400, 50 ); /* name, flags,
-								 x, and y */
-    new GLUI_StaticText( glui, "GLUI Example 2" );
-    /**new GLUI_Separator( glui );
-    checkbox = new GLUI_Checkbox( glui, "Wireframe", &wireframe, 1, control_cb );
-    spinner  = new GLUI_Spinner( glui, "Segments:", &segments, 2, control_cb );
-    spinner->set_int_limits( 3, 60 );
+    GLUI_Checkbox   *checkbox;
+    GLUI_Spinner    *numberOfColours;
+    GLUI_RadioGroup *radio;
+    GLUI_EditText   *edittext, *edittext2;
+
+    //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
+    new GLUI_StaticText( glui, "Additional options visualization" );
+    new GLUI_Separator( glui );
+    checkbox = new GLUI_Checkbox( glui, "Cool color button!", &scalar_col, 1 );
+    numberOfColours  = new GLUI_Spinner( glui, "Segments:", &numcols, 2);
+    numberOfColours->set_int_limits( 2, 256 );
+
+	//new GLUI_StaticText( glui, minValueData);
+    //new GLUI_StaticText(glui, )
+
+    //TODO Needs live variables
+    edittext = new GLUI_EditText( glui, "Min value:", &minValueData, 3);
+    edittext2 = new GLUI_EditText( glui, "Max value:", &maxValueData, 3);
+
+//    glui->sync_live();
+
+    /**
     edittext = new GLUI_EditText( glui, "Text:", text, 3, control_cb );
     GLUI_Panel *obj_panel = new GLUI_Panel( glui, "Object Type" );
     radio = new GLUI_RadioGroup( obj_panel,&obj,4,control_cb );
@@ -483,8 +563,6 @@ void GLUI_test(){
     // We register the idle callback with GLUI, *not* with GLUT
     //GLUI_Master.set_glutIdleFunc( myGlutIdle );
     GLUI_Master.set_glutIdleFunc( NULL );
-
-    glutMainLoop();
     **/
 }
 
@@ -521,7 +599,8 @@ int main(int argc, char **argv)
 
     init_simulation(DIM);    //initialize the simulation data structures
 
-    GLUI_test();
+    glui = GLUI_Master.create_glui( "Options", 0, 400, 50 );
+    GLUI_interface(glui);
 
 
     glutMainLoop();            //calls do_one_simulation_step, keyboard, display, drag, reshape
