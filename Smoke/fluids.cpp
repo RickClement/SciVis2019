@@ -37,11 +37,12 @@ const int VIS_DENSITY=0;
 const int VIS_VELOCITY=1;
 const int VIS_FORCE=2;
 int   scalar_col = 0;           //method for scalar coloring
-int   vis = 0;
+int   vis = 0;					//toggles between visualisation datasets
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
-float minValueData = 0;
-float maxValueData = 0;
+int   scalclam = 0;				//toggles between colormap scaling or clamping
+float minValueData =  999;
+float maxValueData = -999;
 
 GLUI *glui;
 
@@ -210,7 +211,6 @@ void do_one_simulation_step(void)
 void rainbow(float value,float* R,float* G,float* B)
 {
    const float dx=0.8;
-   if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
    *R = max(1.0,(float)((3-fabs(value-4)-fabs(value-5))/2.0));
    *G = max(1.0,(float)((4-fabs(value-2)-fabs(value-4))/2.0));
@@ -221,7 +221,6 @@ void rainbow(float value,float* R,float* G,float* B)
 void heatmap(float value, float* R, float* G, float* B)
 {
    const float dx=0.8;
-   if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
    *R = max(1.0,(float)((6-fabs(value-3)-fabs(value-4))/2.0));
    *G = max(1.0,(float)((4-fabs(value-4)-fabs(value-5))/2.0));
@@ -232,24 +231,33 @@ void heatmap(float value, float* R, float* G, float* B)
 void set_colormap(float vy)
 {
    float R,G,B;
+   
+   vy *= numcols;
+   vy = (int)(vy);
+   vy/= numcols;
+   
+   if(scalclam) {
+	   // Clamp the data between the given min and max values
+	   if(vy < minValueData) {
+		   vy = minValueData;
+	   } else if (vy > maxValueData) {
+		   vy = maxValueData;
+	   }
+   }
+   
+   // Normalise vy to the interval 0-1.
+   float interval = maxValueData - minValueData;
+   vy = (vy - minValueData) / interval;
 
    if (scalar_col==COLOR_BLACKWHITE) {
-       vy *= numcols;
-       vy = (int)(vy); vy/= numcols;
        R = G = B = vy;
    }
-   else if (scalar_col==COLOR_RAINBOW)
-       {
-          vy *= numcols;
-          vy = (int)(vy); vy/= numcols;
-	      rainbow(vy,&R,&G,&B);
-	   }
-   else if (scalar_col==COLOR_HEAT)
-       {
-          vy *= numcols;
-          vy = (int)(vy); vy/= numcols;
-	      heatmap(vy,&R,&G,&B);
-	   }
+   else if (scalar_col==COLOR_RAINBOW) {
+	   rainbow(vy,&R,&G,&B);
+   }
+   else if (scalar_col==COLOR_HEAT) {
+       heatmap(vy,&R,&G,&B);
+   }
 
    glColor3f(R,G,B);
 }
@@ -297,6 +305,8 @@ void drawColorLegend(){
     
 	glBegin(GL_QUAD_STRIP);
 	interval = 1 / (float) numcols;
+	minValueData = 0;
+	maxValueData = 1;
     while(value <= 1){
 		set_colormap(value);
 		width = value * winWidth;
@@ -368,8 +378,8 @@ void updateMinMaxValues(fftw_real *data){
 
 fftw_real getVariable(int idx){
 	switch(vis){
-			case VIS_DENSITY: updateMinMaxValues(rho); return rho[idx];
-            //case VIS_DENSITY:  return rho[idx];
+			//case VIS_DENSITY: updateMinMaxValues(rho); return rho[idx];
+            case VIS_DENSITY:  return rho[idx];
 			case VIS_VELOCITY: return sqrt((pow(vx[idx],2)+pow(vy[idx],2)));
 			case VIS_FORCE:    return sqrt((pow(fx[idx],2)+pow(fy[idx],2)));
 		}
@@ -381,8 +391,6 @@ fftw_real getVariable(int idx){
 //visualize: This is the main visualization function
 void visualize(void)
 {
-    drawColorLegend();
-
 	int        i, j, idx; double px,py;
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
@@ -403,7 +411,6 @@ void visualize(void)
 		idx = (j * DIM) + i;
 		
 		variable = getVariable(idx);
-		
 		glColor3f(variable,variable,variable);
 		glVertex2f(px,py);
 
@@ -446,6 +453,7 @@ void visualize(void)
 	    }
 	  glEnd();
 	}
+	drawColorLegend();
 }
 
 
@@ -490,7 +498,8 @@ void keyboard(unsigned char key, int x, int y)
 		    if (draw_vecs==0) draw_smoke = 1; break;
 	  case 'm': scalar_col = (scalar_col + 1) % 3; break;
 	  case 'a': frozen = 1-frozen; break;
-	  case 'b': vis = (vis + 1) % 3; break;
+	  case 'n': scalclam = 1 - scalclam; break;
+	  case 'b': vis = (vis + 1) % 3; minValueData = 999; maxValueData = -999; break;
 	  case '+': if(numcols < 255) numcols += 1; break;
 	  case '-': if(numcols > 1)   numcols -= 1; break;
 	  case 'q': exit(0);
@@ -581,6 +590,7 @@ int main(int argc, char **argv)
 	printf("y:     toggle drawing hedgehogs on/off\n");
 	printf("m:     toggle thru scalar coloring\n");
 	printf("a:     toggle the animation on/off\n");
+	printf("n	   toggle between scaling and clamping\n");
 	printf("b:     toggle through visualisations\n");
 	printf("+      increase colours in the colourmap\n");
 	printf("-      decrease colours in the colourmap\n");
