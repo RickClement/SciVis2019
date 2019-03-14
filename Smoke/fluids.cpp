@@ -231,11 +231,11 @@ void heatmap(float value, float* R, float* G, float* B)
 void set_colormap(float vy)
 {
    float R,G,B;
-   
+
    vy *= numcols;
    vy = (int)(vy);
    vy/= numcols;
-   
+
    if(scalclam) {
 	   // Clamp the data between the given min and max values
 	   if(vy < minValueData) {
@@ -244,7 +244,7 @@ void set_colormap(float vy)
 		   vy = maxValueData;
 	   }
    }
-   
+
    // Normalise vy to the interval 0-1.
    float interval = maxValueData - minValueData;
    vy = (vy - minValueData) / interval;
@@ -341,31 +341,38 @@ int getSizeArray(fftw_real *array){
 
 void updateMinValue(fftw_real *data) {
 
-    int arraySize = getSizeArray(data);
-	fftw_real minValue = 9999;
+	if(scalclam == 0) { //only when we are scaling
 
-    for (int i = 0; i < arraySize; i++) {
-        if (data[i] < minValue) {
-            minValue = data[i];
-        }
-    }
-    minValueData = minValue;
-    glui->sync_live();
+		int arraySize = getSizeArray(data);
+		fftw_real minValue = 9999;
+
+		for (int i = 0; i < arraySize; i++) {
+			if (data[i] < minValue) {
+				minValue = data[i];
+			}
+		}
+		minValueData = minValue;
+		glui->sync_live();
+
+	}
 
 }
 
 void updateMaxValue(fftw_real *data) {
 
-    int arraySize = getSizeArray(data);
-	fftw_real maxValue = 0;
+	if(scalclam == 0) { //only when we are scaling
 
-    for (int i = 0; i < arraySize; i++) {
-        if (data[i] > maxValue) {
-            maxValue = data[i];
-        }
-    }
-    maxValueData = maxValue;
-    glui->sync_live();
+		int arraySize = getSizeArray(data);
+		fftw_real maxValue = 0;
+
+		for (int i = 0; i < arraySize; i++) {
+			if (data[i] > maxValue) {
+				maxValue = data[i];
+			}
+		}
+		maxValueData = maxValue;
+		glui->sync_live();
+	}
 
 
 }
@@ -375,6 +382,30 @@ void updateMinMaxValues(fftw_real *data){
 	updateMaxValue(data);
 
 }
+
+void updateMinMaxValues(){
+
+    if (scalclam == 0){ // When scaling, use the values from the data set as out min and max
+
+        switch(vis) {
+            case VIS_DENSITY:
+                updateMinMaxValues(rho);
+
+                /**
+            case VIS_VELOCITY:
+                return sqrt((pow(vx[idx], 2) + pow(vy[idx], 2)));
+            case VIS_FORCE:
+                return sqrt((pow(fx[idx], 2) + pow(fy[idx], 2)));
+                 **/
+            default:
+                break;
+        }
+    }
+    else{ // When clamping, use the values as set in the clamp
+
+    }
+}
+
 
 fftw_real getVariable(int idx){
 	switch(vis){
@@ -429,6 +460,8 @@ void visualize(void)
 			set_colormap(variable);
 			glVertex2f(px, py);
 		}
+
+        updateMinMaxValues();
 
 		px = wn + (fftw_real)(DIM - 1) * wn;
 		py = hn + (fftw_real)(j + 1) * hn;
@@ -545,16 +578,16 @@ void GLUI_interface(GLUI *glui){
     //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
     new GLUI_StaticText( glui, "Additional options visualization" );
     new GLUI_Separator( glui );
-    checkbox = new GLUI_Checkbox( glui, "Cool color button!", &scalar_col, 1 );
+    //checkbox = new GLUI_Checkbox( glui, "Cool color button!", &scalar_col, 1 );
     numberOfColours  = new GLUI_Spinner( glui, "Segments:", &numcols, 2);
-    numberOfColours->set_int_limits( 2, 256 );
+    numberOfColours->set_int_limits( 3, 256 );
 
 	//new GLUI_StaticText( glui, minValueData);
     //new GLUI_StaticText(glui, )
 
     //TODO Needs live variables
-    edittext = new GLUI_EditText( glui, "Min value:", &minValueData, 3);
-    edittext2 = new GLUI_EditText( glui, "Max value:", &maxValueData, 3);
+    edittext = new GLUI_EditText( glui, "Min value data points:", &minValueData, 3);
+    edittext2 = new GLUI_EditText( glui, "Max value data points:", &maxValueData, 3);
 
 //    glui->sync_live();
 
