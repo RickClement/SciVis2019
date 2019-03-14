@@ -40,7 +40,7 @@ int   scalar_col = 0;           //method for scalar coloring
 int   vis = 0;					//toggles between visualisation datasets
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
-int   scalclam = 0;				//toggles between colormap scaling or clamping
+int   scalclam = 0;				//toggles between colormap scaling or clamping. 0 means scaling, 1 means clamping
 float minValueData =  999;
 float maxValueData = -999;
 
@@ -516,27 +516,27 @@ void reshape(int w, int h)
 //keyboard: Handle key presses
 void keyboard(unsigned char key, int x, int y)
 {
-	switch (key)
-	{
-	  case 't': dt -= 0.001; break;
-	  case 'T': dt += 0.001; break;
-	  case 'c': color_dir = 1 - color_dir; break;
-	  case 'S': vec_scale *= 1.2; break;
-	  case 's': vec_scale *= 0.8; break;
-	  case 'V': visc *= 5; break;
-	  case 'v': visc *= 0.2; break;
-	  case 'x': draw_smoke = 1 - draw_smoke;
-		    if (draw_smoke==0) draw_vecs = 1; break;
-	  case 'y': draw_vecs = 1 - draw_vecs;
-		    if (draw_vecs==0) draw_smoke = 1; break;
-	  case 'm': scalar_col = (scalar_col + 1) % 3; break;
-	  case 'a': frozen = 1-frozen; break;
-	  case 'n': scalclam = 1 - scalclam; break;
-	  case 'b': vis = (vis + 1) % 3; minValueData = 999; maxValueData = -999; break;
-	  case '+': if(numcols < 255) numcols += 1; break;
-	  case '-': if(numcols > 1)   numcols -= 1; break;
-	  case 'q': exit(0);
-	}
+    switch (key)
+    {
+        case 't': dt -= 0.001; glui->sync_live(); break;
+        case 'T': dt += 0.001; glui->sync_live(); break;
+        case 'c': color_dir = 1 - color_dir; glui->sync_live(); break;
+        case 'S': vec_scale *= 1.2; glui->sync_live(); break;
+        case 's': vec_scale *= 0.8; glui->sync_live(); break;
+        case 'V': visc *= 5; glui->sync_live(); break;
+        case 'v': visc *= 0.2; glui->sync_live(); break;
+        case 'x': draw_smoke = 1 - draw_smoke;
+            if (draw_smoke==0) draw_vecs = 1; glui->sync_live(); break;
+        case 'y': draw_vecs = 1 - draw_vecs;
+            if (draw_vecs==0) draw_smoke = 1; glui->sync_live(); break;
+        case 'm': scalar_col = (scalar_col + 1) % 3; glui->sync_live(); break;
+        case 'a': frozen = 1-frozen; glui->sync_live(); break;
+        case 'n': scalclam = 1 - scalclam; glui->sync_live(); break;
+        case 'b': vis = (vis + 1) % 3; minValueData = 999; maxValueData = -999; glui->sync_live(); break;
+        case '+': if(numcols < 255) numcols += 1; glui->sync_live(); break;
+        case '-': if(numcols > 1)   numcols -= 1; glui->sync_live(); break;
+        case 'q': exit(0);
+    }
 }
 
 
@@ -570,9 +570,9 @@ void drag(int mx, int my)
 
 void GLUI_interface(GLUI *glui){
 
-    GLUI_Checkbox   *checkbox;
+    GLUI_Checkbox   *checkboxScaling, *checkboxDirectionColoring, *checkboxDrawMatter, *checkboxHedgehogs;
     GLUI_Spinner    *numberOfColours;
-    GLUI_RadioGroup *radio;
+    GLUI_RadioGroup *radio, *radio2;
     GLUI_EditText   *edittext, *edittext2;
 
     //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
@@ -585,7 +585,23 @@ void GLUI_interface(GLUI *glui){
 	//new GLUI_StaticText( glui, minValueData);
     //new GLUI_StaticText(glui, )
 
-    //TODO Needs live variables
+    checkboxScaling = new GLUI_Checkbox( glui, "Use scaling (rather than clamping)", &scalclam, 1 );
+    checkboxDirectionColoring = new GLUI_Checkbox( glui, "Toggle direction coloring", &color_dir, 1 );
+    checkboxDrawMatter = new GLUI_Checkbox( glui, "Toggle drawing matter", &draw_smoke, 1 );
+    checkboxHedgehogs = new GLUI_Checkbox( glui, "Toggle drawing hedgehogs", &draw_vecs, 1 );
+
+	GLUI_Panel *obj_panel = new GLUI_Panel( glui, "Colormap type" );
+	radio = new GLUI_RadioGroup( obj_panel, &scalar_col);
+	new GLUI_RadioButton( radio, "Black/white" );
+	new GLUI_RadioButton( radio, "Rainbow" );
+	new GLUI_RadioButton( radio, "Heatmap" );
+
+    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize" );
+    radio2 = new GLUI_RadioGroup( obj_panel2, &vis);
+    new GLUI_RadioButton( radio2, "Fluid density" );
+    new GLUI_RadioButton( radio2, "Fluid velocity magnitude" );
+    new GLUI_RadioButton( radio2, "Force field magnitude" );
+
     edittext = new GLUI_EditText( glui, "Min value data points:", &minValueData, 3);
     edittext2 = new GLUI_EditText( glui, "Max value data points:", &maxValueData, 3);
 
@@ -638,14 +654,13 @@ int main(int argc, char **argv)
     glutReshapeFunc(reshape);
     glutIdleFunc(do_one_simulation_step);
     glutKeyboardFunc(keyboard);
+
     glutMotionFunc(drag);
 
     init_simulation(DIM);    //initialize the simulation data structures
 
     glui = GLUI_Master.create_glui( "Options", 0, 400, 50 );
     GLUI_interface(glui);
-
-
     glutMainLoop();            //calls do_one_simulation_step, keyboard, display, drag, reshape
     return 0;
 }
