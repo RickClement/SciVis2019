@@ -380,7 +380,6 @@ void updateMaxValue(fftw_real *data) {
 void updateMinMaxValues(fftw_real *data){
 	updateMinValue(data);
 	updateMaxValue(data);
-
 }
 
 void updateMinMaxValues(){
@@ -579,24 +578,24 @@ void GLUI_interface(GLUI *glui){
     new GLUI_StaticText( glui, "Additional options visualization" );
     new GLUI_Separator( glui );
     //checkbox = new GLUI_Checkbox( glui, "Cool color button!", &scalar_col, 1 );
-    numberOfColours  = new GLUI_Spinner( glui, "Segments:", &numcols, 2);
+    numberOfColours  = new GLUI_Spinner( glui, "Segments colormap:", &numcols, 2);
     numberOfColours->set_int_limits( 3, 256 );
 
 	//new GLUI_StaticText( glui, minValueData);
     //new GLUI_StaticText(glui, )
 
-    checkboxScaling = new GLUI_Checkbox( glui, "Use scaling (rather than clamping)", &scalclam, 1 );
-    checkboxDirectionColoring = new GLUI_Checkbox( glui, "Toggle direction coloring", &color_dir, 1 );
-    checkboxDrawMatter = new GLUI_Checkbox( glui, "Toggle drawing matter", &draw_smoke, 1 );
-    checkboxHedgehogs = new GLUI_Checkbox( glui, "Toggle drawing hedgehogs", &draw_vecs, 1 );
+    checkboxScaling = new GLUI_Checkbox( glui, "Use scaling (rather than clamping) (n)", &scalclam, 1 );
+    checkboxDirectionColoring = new GLUI_Checkbox( glui, "Toggle direction coloring (c)", &color_dir, 1 );
+    checkboxDrawMatter = new GLUI_Checkbox( glui, "Toggle drawing matter (x)", &draw_smoke, 1 );
+    checkboxHedgehogs = new GLUI_Checkbox( glui, "Toggle drawing hedgehogs (y)", &draw_vecs, 1 );
 
-	GLUI_Panel *obj_panel = new GLUI_Panel( glui, "Colormap type" );
+	GLUI_Panel *obj_panel = new GLUI_Panel( glui, "Colormap type (m)" );
 	radio = new GLUI_RadioGroup( obj_panel, &scalar_col);
 	new GLUI_RadioButton( radio, "Black/white" );
 	new GLUI_RadioButton( radio, "Rainbow" );
 	new GLUI_RadioButton( radio, "Heatmap" );
 
-    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize" );
+    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize (b)" );
     radio2 = new GLUI_RadioGroup( obj_panel2, &vis);
     new GLUI_RadioButton( radio2, "Fluid density" );
     new GLUI_RadioButton( radio2, "Fluid velocity magnitude" );
