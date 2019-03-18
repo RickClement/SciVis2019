@@ -211,16 +211,20 @@ void do_one_simulation_step(void)
 void rainbow(float value,float* R,float* G,float* B)
 {
    const float dx=0.8;
+   if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
    *R = max(1.0,(float)((3-fabs(value-4)-fabs(value-5))/2.0));
    *G = max(1.0,(float)((4-fabs(value-2)-fabs(value-4))/2.0));
    *B = max(1.0,(float)((3-fabs(value-1)-fabs(value-2))/2.0));
+
+
 }
 
 //heatmap: Implements a red->yellow->white heat inspired colour palette.
 void heatmap(float value, float* R, float* G, float* B)
 {
    const float dx=0.8;
+   if (value<0) value=0; if (value>1) value=1;
    value = (6-2*dx)*value+dx;
    *R = max(1.0,(float)((6-fabs(value-3)-fabs(value-4))/2.0));
    *G = max(1.0,(float)((4-fabs(value-4)-fabs(value-5))/2.0));
@@ -380,6 +384,7 @@ void updateMaxValue(fftw_real *data) {
 void updateMinMaxValues(fftw_real *data){
 	updateMinValue(data);
 	updateMaxValue(data);
+
 }
 
 void updateMinMaxValues(){
@@ -584,7 +589,7 @@ void GLUI_interface(GLUI *glui){
 	//new GLUI_StaticText( glui, minValueData);
     //new GLUI_StaticText(glui, )
 
-    checkboxScaling = new GLUI_Checkbox( glui, "Use scaling (rather than clamping) (n)", &scalclam, 1 );
+    checkboxScaling = new GLUI_Checkbox( glui, "Use clamping (rather than scaling) (n)", &scalclam, 1 );
     checkboxDirectionColoring = new GLUI_Checkbox( glui, "Toggle direction coloring (c)", &color_dir, 1 );
     checkboxDrawMatter = new GLUI_Checkbox( glui, "Toggle drawing matter (x)", &draw_smoke, 1 );
     checkboxHedgehogs = new GLUI_Checkbox( glui, "Toggle drawing hedgehogs (y)", &draw_vecs, 1 );
