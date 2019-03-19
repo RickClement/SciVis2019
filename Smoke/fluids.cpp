@@ -33,7 +33,7 @@ int   draw_vecs = 1;            //draw the vector field or not
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, heat
 const int COLOR_RAINBOW=1;
 const int COLOR_HEAT=2;
-const int VIS_DENSITY=0;
+const int VIS_DENSITY=0;		//different datasets to visualise
 const int VIS_VELOCITY=1;
 const int VIS_FORCE=2;
 int   scalar_col = 0;           //method for scalar coloring
@@ -41,6 +41,9 @@ int   vis = 0;					//toggles between visualisation datasets
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
 int   scalclam = 0;				//toggles between colormap scaling or clamping. 0 means scaling, 1 means clamping
+fftw_real *mins, *maxs;			//store min and max values in a rolling window for colormap scaling
+int   window = 20;				//size of the rolling window
+int   curwindow = 0;			//current rolling window index
 float minValueData =  999;
 float maxValueData = -999;
 
@@ -68,6 +71,8 @@ void init_simulation(int n)
 	rho0    = (fftw_real*) malloc(dim);
 	plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
 	plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
+	mins	= (fftw_real*) malloc(window);
+	maxs	= (fftw_real*) malloc(window);
 
 	for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
 	{ vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
@@ -322,16 +327,15 @@ void drawColorLegend(){
 		value += interval;
 	}
 	glEnd();
-	
 }
 
+/**
 //Probably something wrong with it: array size seems to remain at 1. I don't get this data structure...
 int getSizeArray(fftw_real *array){
-    /**
+
     int size = sizeof(array)/sizeof(array[0]);
     return size;
-     **/
-     /**
+
      int size = 0;
      fftw_real j = 1;
     while (j != 0){
@@ -339,37 +343,35 @@ int getSizeArray(fftw_real *array){
         size++;
     }
     return size;
-    **/
     return DIM * DIM;
 }
+**/
 
 void updateMinValue(fftw_real *data) {
 
 	if(scalclam == 0) { //only when we are scaling
 
-		int arraySize = getSizeArray(data);
-		fftw_real minValue = 9999;
+		//int arraySize = window;
+		fftw_real minValue = data[0];
 
-		for (int i = 0; i < arraySize; i++) {
+		for (int i = 0; i < window; i++) {
 			if (data[i] < minValue) {
 				minValue = data[i];
 			}
 		}
 		minValueData = minValue;
 		glui->sync_live();
-
 	}
-
 }
 
 void updateMaxValue(fftw_real *data) {
 
 	if(scalclam == 0) { //only when we are scaling
 
-		int arraySize = getSizeArray(data);
-		fftw_real maxValue = 0;
+		//int arraySize = window;
+		fftw_real maxValue = data[0];
 
-		for (int i = 0; i < arraySize; i++) {
+		for (int i = 0; i < window; i++) {
 			if (data[i] > maxValue) {
 				maxValue = data[i];
 			}
@@ -381,33 +383,43 @@ void updateMaxValue(fftw_real *data) {
 
 }
 
+/**
 void updateMinMaxValues(fftw_real *data){
 	updateMinValue(data);
 	updateMaxValue(data);
 
 }
-
+**/
 void updateMinMaxValues(){
 
     if (scalclam == 0){ // When scaling, use the values from the data set as out min and max
-
+		updateMinValue(mins);
+		updateMaxValue(maxs);
+		/**
         switch(vis) {
             case VIS_DENSITY:
                 updateMinMaxValues(rho);
-
-                /**
             case VIS_VELOCITY:
                 return sqrt((pow(vx[idx], 2) + pow(vy[idx], 2)));
             case VIS_FORCE:
                 return sqrt((pow(fx[idx], 2) + pow(fy[idx], 2)));
-                 **/
             default:
                 break;
         }
+        **/
     }
     else{ // When clamping, use the values as set in the clamp
 
     }
+}
+
+void updateMinMaxArrays(fftw_real min_var, fftw_real max_var){
+	mins[curwindow] = min_var;
+	maxs[curwindow] = max_var;
+	
+	curwindow = (curwindow + 1) % window;
+	
+	updateMinMaxValues();
 }
 
 
@@ -431,6 +443,8 @@ void visualize(void)
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
 	
 	fftw_real variable;
+	fftw_real min_var =  9999;
+	fftw_real max_var = -9999;
 
 	if (draw_smoke)
 	{
@@ -446,6 +460,12 @@ void visualize(void)
 		idx = (j * DIM) + i;
 		
 		variable = getVariable(idx);
+		if(variable < min_var){
+			min_var = variable;
+		}
+		if(variable > max_var){
+			max_var = variable;
+		}
 		glColor3f(variable,variable,variable);
 		glVertex2f(px,py);
 
@@ -455,12 +475,24 @@ void visualize(void)
 			py = hn + (fftw_real)(j + 1) * hn;
 			idx = ((j + 1) * DIM) + i;
 			variable = getVariable(idx);
+			if(variable < min_var){
+				min_var = variable;
+			}
+			if(variable > max_var){
+				max_var = variable;
+			}
 			set_colormap(variable);
 			glVertex2f(px, py);
 			px = wn + (fftw_real)(i + 1) * wn;
 			py = hn + (fftw_real)j * hn;
 			idx = (j * DIM) + (i + 1);
 			variable = getVariable(idx);
+			if(variable < min_var){
+				min_var = variable;
+			}
+			if(variable > max_var){
+				max_var = variable;
+			}
 			set_colormap(variable);
 			glVertex2f(px, py);
 		}
@@ -471,8 +503,15 @@ void visualize(void)
 		py = hn + (fftw_real)(j + 1) * hn;
 		idx = ((j + 1) * DIM) + (DIM - 1);
 		variable = getVariable(idx);
+		if(variable < min_var){
+			min_var = variable;
+		}
+		if(variable > max_var){
+			max_var = variable;
+		}
 		set_colormap(variable);
 		glVertex2f(px, py);
+		updateMinMaxArrays(min_var, max_var);
 		glEnd();
 	}
 	}
@@ -536,7 +575,7 @@ void keyboard(unsigned char key, int x, int y)
         case 'm': scalar_col = (scalar_col + 1) % 3; glui->sync_live(); break;
         case 'a': frozen = 1-frozen; glui->sync_live(); break;
         case 'n': scalclam = 1 - scalclam; glui->sync_live(); break;
-        case 'b': vis = (vis + 1) % 3; minValueData = 999; maxValueData = -999; glui->sync_live(); break;
+        case 'b': vis = (vis + 1) % 3; /** TODO reset mins and maxs arrays **/ glui->sync_live(); break;
         case '+': if(numcols < 255) numcols += 1; glui->sync_live(); break;
         case '-': if(numcols > 1)   numcols -= 1; glui->sync_live(); break;
         case 'q': exit(0);
