@@ -42,7 +42,7 @@ int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
 int   scalclam = 0;				//toggles between colormap scaling or clamping. 0 means scaling, 1 means clamping
 fftw_real *mins, *maxs;			//store min and max values in a rolling window for colormap scaling
-int   window = 20;				//size of the rolling window
+int   window = 75;				//size of the rolling window
 int   curwindow = 0;			//current rolling window index
 float minValueData =  999;
 float maxValueData = -999;
@@ -71,8 +71,8 @@ void init_simulation(int n)
 	rho0    = (fftw_real*) malloc(dim);
 	plan_rc = rfftw2d_create_plan(n, n, FFTW_REAL_TO_COMPLEX, FFTW_IN_PLACE);
 	plan_cr = rfftw2d_create_plan(n, n, FFTW_COMPLEX_TO_REAL, FFTW_IN_PLACE);
-	mins	= (fftw_real*) malloc(window);
-	maxs	= (fftw_real*) malloc(window);
+	mins	= (fftw_real*) calloc(window,sizeof(fftw_real));
+	maxs	= (fftw_real*) calloc(window,sizeof(fftw_real));
 
 	for (i = 0; i < n * n; i++)                      //Initialize data structures to 0
 	{ vx[i] = vy[i] = vx0[i] = vy0[i] = fx[i] = fy[i] = rho[i] = rho0[i] = 0.0f; }
@@ -497,7 +497,7 @@ void visualize(void)
 			glVertex2f(px, py);
 		}
 
-        updateMinMaxValues();
+        //updateMinMaxValues();
 
 		px = wn + (fftw_real)(DIM - 1) * wn;
 		py = hn + (fftw_real)(j + 1) * hn;
