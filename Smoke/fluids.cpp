@@ -9,6 +9,7 @@
 #include <algorithm>
 #include "Quad.h"
 #include "glui.h"
+#include <tuple>
 
 
 
@@ -33,11 +34,13 @@ int   draw_vecs = 1;            //draw the vector field or not
 const int COLOR_BLACKWHITE=0;   //different types of color mapping: black-and-white, rainbow, heat
 const int COLOR_RAINBOW=1;
 const int COLOR_HEAT=2;
-const int VIS_DENSITY=0;		//different datasets to visualise
-const int VIS_VELOCITY=1;
-const int VIS_FORCE=2;
+const int SCA_DENSITY=0;		//different datasets to visualise
+const int SCA_VELOCITY=1;
+const int SCA_FORCE=2;
+const int VEC_VELOCITY = 0;
+const int VEC_FORCE = 1;
 int   scalar_col = 0;           //method for scalar coloring
-int   vis = 0;					//toggles between visualisation datasets
+int   scalar_field = 0;			//toggles between visualisation datasets
 int   frozen = 0;               //toggles on/off the animation
 int   numcols = 128;			//parameterises the number of colours in the colourmap
 int   scalclam = 0;				//toggles between colormap scaling or clamping. 0 means scaling, 1 means clamping
@@ -423,17 +426,14 @@ void updateMinMaxArrays(fftw_real min_var, fftw_real max_var){
 }
 
 
-fftw_real getVariable(int idx){
-	switch(vis){
-			//case VIS_DENSITY: updateMinMaxValues(rho); return rho[idx];
-            case VIS_DENSITY:  return rho[idx];
-			case VIS_VELOCITY: return sqrt((pow(vx[idx],2)+pow(vy[idx],2)));
-			case VIS_FORCE:    return sqrt((pow(fx[idx],2)+pow(fy[idx],2)));
+fftw_real getScalarVariable(int idx){
+	switch(scalar_field){
+			//case SCA_DENSITY: updateMinMaxValues(rho); return rho[idx];
+            case SCA_DENSITY:  return rho[idx];
+			case SCA_VELOCITY: return sqrt((pow(vx[idx],2)+pow(vy[idx],2)));
+			case SCA_FORCE:    return sqrt((pow(fx[idx],2)+pow(fy[idx],2)));
 		}
 }
-
-
-
 
 //visualize: This is the main visualization function
 void visualize(void)
@@ -441,7 +441,7 @@ void visualize(void)
 	int        i, j, idx; double px,py;
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
 	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
-	
+
 	fftw_real variable;
 	fftw_real min_var =  9999;
 	fftw_real max_var = -9999;
@@ -458,8 +458,8 @@ void visualize(void)
 		px = wn + (fftw_real)i * wn;
 		py = hn + (fftw_real)j * hn;
 		idx = (j * DIM) + i;
-		
-		variable = getVariable(idx);
+
+		variable = getScalarVariable(idx);
 		if(variable < min_var){
 			min_var = variable;
 		}
@@ -474,7 +474,7 @@ void visualize(void)
 			px = wn + (fftw_real)i * wn;
 			py = hn + (fftw_real)(j + 1) * hn;
 			idx = ((j + 1) * DIM) + i;
-			variable = getVariable(idx);
+			variable = getScalarVariable(idx);
 			if(variable < min_var){
 				min_var = variable;
 			}
@@ -486,7 +486,7 @@ void visualize(void)
 			px = wn + (fftw_real)(i + 1) * wn;
 			py = hn + (fftw_real)j * hn;
 			idx = (j * DIM) + (i + 1);
-			variable = getVariable(idx);
+			variable = getScalarVariable(idx);
 			if(variable < min_var){
 				min_var = variable;
 			}
@@ -502,7 +502,7 @@ void visualize(void)
 		px = wn + (fftw_real)(DIM - 1) * wn;
 		py = hn + (fftw_real)(j + 1) * hn;
 		idx = ((j + 1) * DIM) + (DIM - 1);
-		variable = getVariable(idx);
+		variable = getScalarVariable(idx);
 		if(variable < min_var){
 			min_var = variable;
 		}
@@ -515,6 +515,7 @@ void visualize(void)
 		glEnd();
 	}
 	}
+
 
 	if (draw_vecs)
 	{
@@ -530,6 +531,17 @@ void visualize(void)
 	  glEnd();
 	}
 	drawColorLegend();
+}
+
+
+
+
+std::tuple<fftw_real, fftw_real> getVectorVariable(int idx){
+	switch(scalar_field){
+		//case SCA_DENSITY: updateMinMaxValues(rho); return rho[idx];
+		case VEC_VELOCITY: return std::make_tuple(vx[idx],vy[idx]);
+		case VEC_FORCE:    return std::make_tuple(fx[idx],fy[idx]);
+	}
 }
 
 
@@ -575,7 +587,7 @@ void keyboard(unsigned char key, int x, int y)
         case 'm': scalar_col = (scalar_col + 1) % 3; glui->sync_live(); break;
         case 'a': frozen = 1-frozen; glui->sync_live(); break;
         case 'n': scalclam = 1 - scalclam; glui->sync_live(); break;
-        case 'b': vis = (vis + 1) % 3; /** TODO reset mins and maxs arrays **/ glui->sync_live(); break;
+        case 'b': scalar_field = (scalar_field + 1) % 3;  glui->sync_live(); break;
         case '+': if(numcols < 255) numcols += 1; glui->sync_live(); break;
         case '-': if(numcols > 1)   numcols -= 1; glui->sync_live(); break;
         case 'q': exit(0);
@@ -640,7 +652,7 @@ void GLUI_interface(GLUI *glui){
 	new GLUI_RadioButton( radio, "Heatmap" );
 
     GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize (b)" );
-    radio2 = new GLUI_RadioGroup( obj_panel2, &vis);
+    radio2 = new GLUI_RadioGroup( obj_panel2, &scalar_field);
     new GLUI_RadioButton( radio2, "Fluid density" );
     new GLUI_RadioButton( radio2, "Fluid velocity magnitude" );
     new GLUI_RadioButton( radio2, "Force field magnitude" );
