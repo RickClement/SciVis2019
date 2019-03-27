@@ -315,12 +315,22 @@ void drawColorLegend(){
     float value = 0;
     float width = 0;
     
+    float R,G,B;
+    
 	glBegin(GL_QUAD_STRIP);
 	interval = 1 / (float) numcols;
-	minValueData = 0;
-	maxValueData = 1;
     while(value <= 1){
-		set_colormap(value);
+		if (scalar_col==COLOR_BLACKWHITE) {
+			R = G = B = value;
+		}
+		else if (scalar_col==COLOR_RAINBOW) {
+			rainbow(value,&R,&G,&B);
+		}
+		else if (scalar_col==COLOR_HEAT) {
+			heatmap(value,&R,&G,&B);
+		}
+
+		glColor3f(R,G,B);
 		width = value * winWidth;
 		glVertex2i(width,15);
 		glVertex2i(width,0);
