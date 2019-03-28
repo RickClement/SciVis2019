@@ -540,6 +540,10 @@ void visualize(void)
 
 	if (draw_vecs)
 	{
+	    if(!draw_smoke){
+	        updateMinMaxArrays(0,1);
+	    }
+
 	  glBegin(GL_LINES);				//draw velocities
 	  for (i = 0; i < DIM; i++)
 	    for (j = 0; j < DIM; j++)
@@ -553,10 +557,10 @@ void visualize(void)
             fftw_real local_vector_x = std::get<0>(vector);
             fftw_real local_vector_y = std::get<1>(vector);
 
-		  //fftw_real scalar = getScalarVariable(idx);
+		  fftw_real scalar = getScalarVariable(idx);
 
-		  //set_colormap(scalar);
-            direction_to_color(local_vector_x,local_vector_y,color_dir);
+		  set_colormap(scalar);
+            //direction_to_color(local_vector_x,local_vector_y,color_dir);
 		  glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
 		  glVertex2f((wn + (fftw_real)i * wn) + vec_scale * local_vector_x, (hn + (fftw_real)j * hn) + vec_scale * local_vector_y);
 	    }
