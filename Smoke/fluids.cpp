@@ -49,6 +49,7 @@ int   window = 75;				//size of the rolling window
 int   curwindow = 0;			//current rolling window index
 float minValueData =  999;
 float maxValueData = -999;
+int vector_field_variable = 0; // 0 is velocity, 1 is force
 
 GLUI *glui;
 
@@ -298,6 +299,8 @@ void direction_to_color(float x, float y, int method)
 	glColor3f(r,g,b);
 }
 
+
+
 //drawColorLegend: Draws the colour legend using the current colour map.
 void drawColorLegend(){
     /*
@@ -445,6 +448,14 @@ fftw_real getScalarVariable(int idx){
 		}
 }
 
+std::tuple<fftw_real, fftw_real> getVectorVariable(int idx){
+    switch(vector_field_variable){
+        case VEC_VELOCITY: return std::make_tuple(vx[idx],vy[idx]);
+        case VEC_FORCE:    return std::make_tuple(fx[idx],fy[idx]);
+    }
+}
+
+
 //visualize: This is the main visualization function
 void visualize(void)
 {
@@ -534,9 +545,20 @@ void visualize(void)
 	    for (j = 0; j < DIM; j++)
 	    {
 		  idx = (j * DIM) + i;
-		  direction_to_color(vx[idx],vy[idx],color_dir);
+
+
+		  auto vector = getVectorVariable(idx);
+
+		  //auto [local_vector_x, local_vector_y] = getVectorVariable(idx);
+            fftw_real local_vector_x = std::get<0>(vector);
+            fftw_real local_vector_y = std::get<1>(vector);
+
+		  //fftw_real scalar = getScalarVariable(idx);
+
+		  //set_colormap(scalar);
+            direction_to_color(local_vector_x,local_vector_y,color_dir);
 		  glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-		  glVertex2f((wn + (fftw_real)i * wn) + vec_scale * vx[idx], (hn + (fftw_real)j * hn) + vec_scale * vy[idx]);
+		  glVertex2f((wn + (fftw_real)i * wn) + vec_scale * local_vector_x, (hn + (fftw_real)j * hn) + vec_scale * local_vector_y);
 	    }
 	  glEnd();
 	}
@@ -546,13 +568,6 @@ void visualize(void)
 
 
 
-std::tuple<fftw_real, fftw_real> getVectorVariable(int idx){
-	switch(scalar_field){
-		//case SCA_DENSITY: updateMinMaxValues(rho); return rho[idx];
-		case VEC_VELOCITY: return std::make_tuple(vx[idx],vy[idx]);
-		case VEC_FORCE:    return std::make_tuple(fx[idx],fy[idx]);
-	}
-}
 
 
 //------ INTERACTION CODE STARTS HERE -----------------------------------------------------------------
@@ -637,7 +652,7 @@ void GLUI_interface(GLUI *glui){
 
     GLUI_Checkbox   *checkboxScaling, *checkboxDirectionColoring, *checkboxDrawMatter, *checkboxHedgehogs;
     GLUI_Spinner    *numberOfColours;
-    GLUI_RadioGroup *radio, *radio2;
+    GLUI_RadioGroup *radio, *radio2, *radio3;
     GLUI_EditText   *edittext, *edittext2;
 
     //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
@@ -661,11 +676,16 @@ void GLUI_interface(GLUI *glui){
 	new GLUI_RadioButton( radio, "Rainbow" );
 	new GLUI_RadioButton( radio, "Heatmap" );
 
-    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize (b)" );
+    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize (scalar field) (b)" );
     radio2 = new GLUI_RadioGroup( obj_panel2, &scalar_field);
     new GLUI_RadioButton( radio2, "Fluid density" );
     new GLUI_RadioButton( radio2, "Fluid velocity magnitude" );
     new GLUI_RadioButton( radio2, "Force field magnitude" );
+
+	GLUI_Panel *obj_panel3 = new GLUI_Panel( glui, "Data to visualize (vector field) ()" );
+	radio3 = new GLUI_RadioGroup( obj_panel3, &vector_field_variable);
+	new GLUI_RadioButton( radio3, "Fluid velocity" );
+	new GLUI_RadioButton( radio3, "Force field" );
 
     edittext = new GLUI_EditText( glui, "Min value data points:", &minValueData, 3);
     edittext2 = new GLUI_EditText( glui, "Max value data points:", &maxValueData, 3);
