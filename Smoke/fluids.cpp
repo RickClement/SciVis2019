@@ -552,17 +552,22 @@ void visualize(void)
 
 
 		  auto vector = getVectorVariable(idx);
-
-		  //auto [local_vector_x, local_vector_y] = getVectorVariable(idx);
-            fftw_real local_vector_x = std::get<0>(vector);
-            fftw_real local_vector_y = std::get<1>(vector);
+          fftw_real local_vector_x = std::get<0>(vector);
+          fftw_real local_vector_y = std::get<1>(vector);
 
 		  fftw_real scalar = getScalarVariable(idx);
+		  
+		  fftw_real direction = atan2(local_vector_y, local_vector_x);
+		  fftw_real magnitude = sqrt(pow(local_vector_x,2)+pow(local_vector_y,2));
+		  //clamp magnitude
+		  if(magnitude > wn){ magnitude = wn; }
 
 		  set_colormap(scalar);
-            //direction_to_color(local_vector_x,local_vector_y,color_dir);
-		  glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-		  glVertex2f((wn + (fftw_real)i * wn) + vec_scale * local_vector_x, (hn + (fftw_real)j * hn) + vec_scale * local_vector_y);
+		  glVertex2f((wn + (fftw_real)i * wn)+((0.5 * magnitude)*cos(direction)),(wn + (fftw_real)j * wn)+((0.5 * magnitude)*sin(direction)));
+		  glVertex2f((wn + (fftw_real)i * wn)+((0.5 * magnitude)*cos(direction+3.1415927)),(wn + (fftw_real)j * wn)+((0.5 * magnitude)*sin(direction+3.1415927)));
+		  
+		  //glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
+		  //glVertex2f((wn + (fftw_real)i * wn) + vec_scale * local_vector_x, (hn + (fftw_real)j * hn) + vec_scale * local_vector_y);
 	    }
 	  glEnd();
 	}
