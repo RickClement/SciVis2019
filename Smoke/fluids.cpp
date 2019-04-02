@@ -51,6 +51,9 @@ float minValueData =  999;
 float maxValueData = -999;
 int vector_field_variable = 0; // 0 is velocity, 1 is force
 
+float glyphsxAxis = DIM;
+float glyphsyAxis = DIM;
+
 GLUI *glui;
 
 //------ SIMULATION CODE STARTS HERE -----------------------------------------------------------------
@@ -461,7 +464,7 @@ void visualize(void)
 {
 	int        i, j, idx; double px,py;
 	fftw_real  wn = (fftw_real)winWidth / (fftw_real)(DIM + 1);   // Grid cell width
-	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell heigh
+	fftw_real  hn = (fftw_real)winHeight / (fftw_real)(DIM + 1);  // Grid cell height
 
 	fftw_real variable;
 	fftw_real min_var =  9999;
@@ -538,41 +541,72 @@ void visualize(void)
 	}
 
 
-	if (draw_vecs)
-	{
-	    if(!draw_smoke){
-	        updateMinMaxArrays(0,1);
-	    }
+    if (draw_vecs) {
+        if (!draw_smoke) {
+            updateMinMaxArrays(0, 1);
+        }
 
-	  glBegin(GL_LINES);				//draw velocities
-	  for (i = 0; i < DIM; i++)
-	    for (j = 0; j < DIM; j++)
-	    {
-		  idx = (j * DIM) + i;
+		int glyphEveryUniformCellX = DIM / glyphsxAxis;
+		int glyphEveryUniformCellY = DIM / glyphsyAxis;
+
+		glBegin(GL_LINES);                //draw velocities
+		for (float i_2 = 0; i_2 < glyphsxAxis; i_2+= glyphEveryUniformCellX)
+			for (float j_2 = 0; j_2 < glyphsyAxis; j_2+= glyphEveryUniformCellY) {
 
 
-		  auto vector = getVectorVariable(idx);
-          fftw_real local_vector_x = std::get<0>(vector);
-          fftw_real local_vector_y = std::get<1>(vector);
+		/**
+                if (i % glyphEveryUniformCellX != 0) {
+                    i++;
+                }
+                if (j % glyphEveryUniformCellY != 0) {
+                    j++;
+                }
+**/
 
-		  fftw_real scalar = getScalarVariable(idx);
-		  
-		  fftw_real direction = atan2(local_vector_y, local_vector_x);
-		  fftw_real magnitude = sqrt(pow(local_vector_x,2)+pow(local_vector_y,2));
-		  //clamp magnitude
-		  if(magnitude > wn){ magnitude = wn; }
 
-		  set_colormap(scalar);
-		  glVertex2f((wn + (fftw_real)i * wn)+((0.5 * magnitude)*cos(direction)),(wn + (fftw_real)j * wn)+((0.5 * magnitude)*sin(direction)));
-		  glVertex2f((wn + (fftw_real)i * wn)+((0.5 * magnitude)*cos(direction+3.1415927)),(wn + (fftw_real)j * wn)+((0.5 * magnitude)*sin(direction+3.1415927)));
-		  
-		  //glVertex2f(wn + (fftw_real)i * wn, hn + (fftw_real)j * hn);
-		  //glVertex2f((wn + (fftw_real)i * wn) + vec_scale * local_vector_x, (hn + (fftw_real)j * hn) + vec_scale * local_vector_y);
-	    }
-	  glEnd();
-	}
-	drawColorLegend();
+				idx = ((int) j_2 * DIM) + (int) i_2;
+				auto scalar1 = getScalarVariable(idx);
+				auto vector1 = getVectorVariable(idx);
+				fftw_real local_vector_x1 = std::get<0>(vector1);
+				fftw_real local_vector_y1 = std::get<1>(vector1);
+
+				idx = (((int) j_2 + 1) * DIM) + (int) i_2;
+				auto scalar2 = getScalarVariable(idx);
+				auto vector2 = getVectorVariable(idx);
+				fftw_real local_vector_x2 = std::get<0>(vector2);
+				fftw_real local_vector_y2 = std::get<1>(vector2);
+
+				idx = ((int) j_2 * DIM) + ((int) i_2 + 1);
+				auto scalar3 = getScalarVariable(idx);
+				auto vector3 = getVectorVariable(idx);
+				fftw_real local_vector_x3 = std::get<0>(vector3);
+				fftw_real local_vector_y3 = std::get<1>(vector3);
+
+				idx = (((int) j_2 + 1) * DIM) + ((int) i_2 + 1);
+				auto scalar4 = getScalarVariable(idx);
+				auto vector4 = getVectorVariable(idx);
+				fftw_real local_vector_x4 = std::get<0>(vector4);
+				fftw_real local_vector_y4 = std::get<1>(vector4);
+
+
+				//auto vector = getVectorVariable(idx);
+				fftw_real local_vector_x = (local_vector_x1 + local_vector_x2 + local_vector_x3 + local_vector_x4) / 4; //TODO interpolate instead of just taking average
+				fftw_real local_vector_y = (local_vector_y1 + local_vector_y2 + local_vector_y3 + local_vector_y4) / 4; //TODO interpolate instead of just taking average
+
+				//fftw_real scalar = getScalarVariable(idx);
+				fftw_real scalar = (scalar1 + scalar2 + scalar3 + scalar4)/4; //TODO interpolate instead of just taking average
+
+                set_colormap(scalar);
+                //direction_to_color(local_vector_x,local_vector_y,color_dir);
+                glVertex2f(wn + (fftw_real) i_2 * wn, hn + (fftw_real) j_2 * hn);
+                glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
+                           (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
+            }
+        glEnd();
+    }
+    drawColorLegend();
 }
+
 
 
 
@@ -662,7 +696,7 @@ void GLUI_interface(GLUI *glui){
     GLUI_Checkbox   *checkboxScaling, *checkboxDirectionColoring, *checkboxDrawMatter, *checkboxHedgehogs;
     GLUI_Spinner    *numberOfColours;
     GLUI_RadioGroup *radio, *radio2, *radio3;
-    GLUI_EditText   *edittext, *edittext2;
+    GLUI_EditText   *edittext, *edittext2, *textboxGlyphsX, *textboxGlyphsY;
 
     //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
     new GLUI_StaticText( glui, "Additional options visualization" );
@@ -699,6 +733,9 @@ void GLUI_interface(GLUI *glui){
     edittext = new GLUI_EditText( glui, "Min value data points:", &minValueData, 3);
     edittext2 = new GLUI_EditText( glui, "Max value data points:", &maxValueData, 3);
 
+    textboxGlyphsX = new GLUI_EditText( glui, "Amount of glyphs X-axis:", &glyphsxAxis, 3);
+    textboxGlyphsY = new GLUI_EditText( glui, "Amount of glyphs Y-axis:", &glyphsyAxis, 3);
+
 //    glui->sync_live();
 
     /**
@@ -722,7 +759,7 @@ void GLUI_interface(GLUI *glui){
 //main: The main program
 int main(int argc, char **argv)
 {
-	printf("Fluid Flow Simulation and Visualization\n");
+	printf("Fluid Flow Simulation and Visualization:\n");
 	printf("=======================================\n");
 	printf("Click and drag the mouse to steer the flow!\n");
 	printf("T/t:   increase/decrease simulation timestep\n");
