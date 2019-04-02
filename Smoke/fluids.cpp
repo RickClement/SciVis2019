@@ -550,8 +550,8 @@ void visualize(void)
 		int glyphEveryUniformCellY = DIM / glyphsyAxis;
 
 		glBegin(GL_LINES);                //draw velocities
-		for (float i_2 = 0; i_2 < glyphsxAxis; i_2+= glyphEveryUniformCellX)
-			for (float j_2 = 0; j_2 < glyphsyAxis; j_2+= glyphEveryUniformCellY) {
+		for (float i_2 = 0; i_2 < DIM-2; i_2+= glyphEveryUniformCellX)
+			for (float j_2 = 0; j_2 < DIM-2; j_2+= glyphEveryUniformCellY) {
 
 
 		/**
