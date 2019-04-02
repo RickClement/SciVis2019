@@ -316,13 +316,13 @@ void drawColorLegend(){
     q.draw();
     //printf("Ik heb een quad gemaakt!\n");
     */
-    
+
     float interval;
     float value = 0;
     float width = 0;
-    
+
     float R,G,B;
-    
+
 	glBegin(GL_QUAD_STRIP);
 	interval = 1 / (float) numcols;
     while(value <= 1){
@@ -342,7 +342,7 @@ void drawColorLegend(){
 		glVertex2i(width,0);
 		glVertex2i(width+interval,0);
 		glVertex2i(width+interval,15);
-		
+
 		value += interval;
 	}
 	glEnd();
@@ -435,9 +435,9 @@ void updateMinMaxValues(){
 void updateMinMaxArrays(fftw_real min_var, fftw_real max_var){
 	mins[curwindow] = min_var;
 	maxs[curwindow] = max_var;
-	
+
 	curwindow = (curwindow + 1) % window;
-	
+
 	updateMinMaxValues();
 }
 
@@ -546,55 +546,60 @@ void visualize(void)
             updateMinMaxArrays(0, 1);
         }
 
-		int glyphEveryUniformCellX = DIM / glyphsxAxis;
-		int glyphEveryUniformCellY = DIM / glyphsyAxis;
+        int glyphEveryUniformCellX = DIM / glyphsxAxis;
+        int glyphEveryUniformCellY = DIM / glyphsyAxis;
 
-		glBegin(GL_LINES);                //draw velocities
-		for (float i_2 = 0; i_2 < glyphsxAxis; i_2+= glyphEveryUniformCellX)
-			for (float j_2 = 0; j_2 < glyphsyAxis; j_2+= glyphEveryUniformCellY) {
+        glBegin(GL_LINES);                //draw velocities
+        for (int i_2 = 0; i_2 < DIM; i_2++)
+            for (int j_2 = 0; j_2 < DIM; j_2++) {
 
 
-		/**
-                if (i % glyphEveryUniformCellX != 0) {
-                    i++;
+                /**
+                if (i_2 % glyphEveryUniformCellX != 0) {
+                    i_2++;
                 }
-                if (j % glyphEveryUniformCellY != 0) {
-                    j++;
+                if (j_2 % glyphEveryUniformCellY != 0) {
+                    j_2++;
                 }
-**/
+                 **/
 
 
-				idx = ((int) j_2 * DIM) + (int) i_2;
-				auto scalar1 = getScalarVariable(idx);
-				auto vector1 = getVectorVariable(idx);
-				fftw_real local_vector_x1 = std::get<0>(vector1);
-				fftw_real local_vector_y1 = std::get<1>(vector1);
+                if(i_2 % glyphEveryUniformCellX == 0 && j_2 % glyphEveryUniformCellY == 0){
 
-				idx = (((int) j_2 + 1) * DIM) + (int) i_2;
-				auto scalar2 = getScalarVariable(idx);
-				auto vector2 = getVectorVariable(idx);
-				fftw_real local_vector_x2 = std::get<0>(vector2);
-				fftw_real local_vector_y2 = std::get<1>(vector2);
+                idx = ((int) j_2 * DIM) + (int) i_2;
+                auto scalar1 = getScalarVariable(idx);
+                auto vector1 = getVectorVariable(idx);
+                fftw_real local_vector_x1 = std::get<0>(vector1);
+                fftw_real local_vector_y1 = std::get<1>(vector1);
 
-				idx = ((int) j_2 * DIM) + ((int) i_2 + 1);
-				auto scalar3 = getScalarVariable(idx);
-				auto vector3 = getVectorVariable(idx);
-				fftw_real local_vector_x3 = std::get<0>(vector3);
-				fftw_real local_vector_y3 = std::get<1>(vector3);
+                idx = (((int) j_2 + 1) * DIM) + (int) i_2;
+                auto scalar2 = getScalarVariable(idx);
+                auto vector2 = getVectorVariable(idx);
+                fftw_real local_vector_x2 = std::get<0>(vector2);
+                fftw_real local_vector_y2 = std::get<1>(vector2);
 
-				idx = (((int) j_2 + 1) * DIM) + ((int) i_2 + 1);
-				auto scalar4 = getScalarVariable(idx);
-				auto vector4 = getVectorVariable(idx);
-				fftw_real local_vector_x4 = std::get<0>(vector4);
-				fftw_real local_vector_y4 = std::get<1>(vector4);
+                idx = ((int) j_2 * DIM) + ((int) i_2 + 1);
+                auto scalar3 = getScalarVariable(idx);
+                auto vector3 = getVectorVariable(idx);
+                fftw_real local_vector_x3 = std::get<0>(vector3);
+                fftw_real local_vector_y3 = std::get<1>(vector3);
+
+                idx = (((int) j_2 + 1) * DIM) + ((int) i_2 + 1);
+                auto scalar4 = getScalarVariable(idx);
+                auto vector4 = getVectorVariable(idx);
+                fftw_real local_vector_x4 = std::get<0>(vector4);
+                fftw_real local_vector_y4 = std::get<1>(vector4);
 
 
-				//auto vector = getVectorVariable(idx);
-				fftw_real local_vector_x = (local_vector_x1 + local_vector_x2 + local_vector_x3 + local_vector_x4) / 4; //TODO interpolate instead of just taking average
-				fftw_real local_vector_y = (local_vector_y1 + local_vector_y2 + local_vector_y3 + local_vector_y4) / 4; //TODO interpolate instead of just taking average
+                //auto vector = getVectorVariable(idx);
+                fftw_real local_vector_x = (local_vector_x1 + local_vector_x2 + local_vector_x3 + local_vector_x4) /
+                                           4; //TODO interpolate instead of just taking average
+                fftw_real local_vector_y = (local_vector_y1 + local_vector_y2 + local_vector_y3 + local_vector_y4) /
+                                           4; //TODO interpolate instead of just taking average
 
-				//fftw_real scalar = getScalarVariable(idx);
-				fftw_real scalar = (scalar1 + scalar2 + scalar3 + scalar4)/4; //TODO interpolate instead of just taking average
+                //fftw_real scalar = getScalarVariable(idx);
+                fftw_real scalar =
+                        (scalar1 + scalar2 + scalar3 + scalar4) / 4; //TODO interpolate instead of just taking average
 
                 set_colormap(scalar);
                 //direction_to_color(local_vector_x,local_vector_y,color_dir);
@@ -602,6 +607,7 @@ void visualize(void)
                 glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
                            (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
             }
+    }
         glEnd();
     }
     drawColorLegend();
