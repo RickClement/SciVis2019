@@ -593,6 +593,16 @@ void visualize(void)
                 glVertex2f(wn + (fftw_real) i_2 * wn, hn + (fftw_real) j_2 * hn);
                 glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
                            (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
+                           
+                glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
+                           (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
+                glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x * 0.8,
+                           (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y * 0.2);
+                           
+                glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
+                           (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
+                glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x * 0.2,
+                           (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y * 0.8);
             
     }
         glEnd();
