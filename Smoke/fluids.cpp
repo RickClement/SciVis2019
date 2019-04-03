@@ -585,7 +585,7 @@ void visualize(void)
                 fftw_real local_vector_y = (local_vector_y1 + local_vector_y2 + local_vector_y3 + local_vector_y4) /
                                            4; //TODO interpolate instead of just taking average
                 fftw_real magnitude = sqrt(pow(local_vector_x,2)+pow(local_vector_x,2));
-                fftw_real direction = atan2(local_vector_y,local_vector_x)*180/3.1415927;
+                fftw_real direction = atan2(local_vector_y,local_vector_x);
 
                 //fftw_real scalar = getScalarVariable(idx);
                 fftw_real scalar =
@@ -599,11 +599,11 @@ void visualize(void)
                            
                 glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
                            (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
-                glVertex2f((wn + (fftw_real) i_2 * wn)+vec_scale*(magnitude*0.9)*cos((direction + 10)*3.1415927/180),(hn + (fftw_real) j_2 * hn)+vec_scale*(magnitude*0.9)*sin((direction + 10)*3.1415927/180));
+                glVertex2f((wn + (fftw_real) i_2 * wn)+vec_scale*(magnitude*0.9)*cos(((0.2 * 3.1415927))),(hn + (fftw_real) j_2 * hn)+vec_scale*(magnitude*0.9)*sin(((0.2 * 3.1415927))));
                            
                 glVertex2f((wn + (fftw_real) i_2 * wn) + vec_scale * local_vector_x,
                            (hn + (fftw_real) j_2 * hn) + vec_scale * local_vector_y);
-                glVertex2f((wn + (fftw_real) i_2 * wn)+vec_scale*(magnitude*0.9)*cos((direction - 10)*3.1415927/180),(hn + (fftw_real) j_2 * hn)+vec_scale*(magnitude*0.9)*sin((direction - 10)*3.1415927/180));
+                glVertex2f((wn + (fftw_real) i_2 * wn)+vec_scale*(magnitude*0.9)*cos((-(0.2 * 3.1415927))),(hn + (fftw_real) j_2 * hn)+vec_scale*(magnitude*0.9)*sin((-(0.2 * 3.1415927))));
             
     }
         glEnd();
