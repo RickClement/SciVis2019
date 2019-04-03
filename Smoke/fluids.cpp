@@ -7,7 +7,6 @@
 #include <math.h>               //for various math functions
 #include <GL/glut.h>            //the GLUT graphics library
 #include <algorithm>
-#include "Quad.h"
 #include "glui.h"
 #include <tuple>
 
@@ -53,6 +52,8 @@ int vector_field_variable = 0; // 0 is velocity, 1 is force
 
 float glyphsxAxis = DIM;
 float glyphsyAxis = DIM;
+
+int marchingSquaresEncoding[DIM][DIM];
 
 GLUI *glui;
 
@@ -550,8 +551,8 @@ void visualize(void)
         int glyphEveryUniformCellY = DIM / glyphsyAxis;
         
 		glBegin(GL_LINES);                //draw velocities
-		for (float i_2 = 0; i_2 < DIM-2; i_2+= glyphEveryUniformCellX)
-			for (float j_2 = 0; j_2 < DIM-2; j_2+= glyphEveryUniformCellY) {
+		for (float i_2 = 0; i_2 < DIM-1; i_2+= glyphEveryUniformCellX)
+			for (float j_2 = 0; j_2 < DIM-1; j_2+= glyphEveryUniformCellY) {
 
                 idx = ((int) j_2 * DIM) + (int) i_2;
                 auto scalar1 = getScalarVariable(idx);
@@ -639,6 +640,108 @@ void reshape(int w, int h)
 	winWidth = w; winHeight = h;
 }
 
+
+// Adds the 4-bit encoding to each cell to 2D array 'marchingSquaresEncoding'
+void marchingSquaresEncoder(fftw_real isoValue) {
+    fftw_real rhoArray[DIM][DIM];
+
+    //Go through all the cells
+    //Along the x-axis
+    for (int i = 0; i < DIM - 1; i++) {
+        //and y-axis
+        for (int j = 0; j < DIM - 1; j++) {
+            //Create a 2D array with the values of rho
+            //if (i != 0 && j != 0) {
+                rhoArray[i][j] = rho[(j * DIM) + i];
+            //}
+        }
+    }
+
+    for (int i = 0; i < DIM - 1; i++) {
+        for (int j = 0; j < DIM - 1; j++) {
+
+            //look at current point, in the bottom left
+            fftw_real bottomleftPoint = rhoArray[i][j];
+            //look in the right direction of the current grid cell
+            fftw_real bottomrightPoint = rhoArray[i+1][j];
+            //top
+            fftw_real topleftPoint = rhoArray[i][j+1];
+            //top right
+            fftw_real toprightPoint = rhoArray[i+1][j+1];
+
+            //TODO replace with bitwise operators
+            //case 0: all points are outside, i.e. values < isovalue
+            if (bottomleftPoint < isoValue && bottomrightPoint < isoValue && topleftPoint < isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 0;
+            }
+            //case 1: bottomleft is inside
+            if (bottomleftPoint > isoValue && bottomrightPoint < isoValue && topleftPoint < isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 1;
+            }
+            //case 2: bottomright is inside
+            if (bottomleftPoint < isoValue && bottomrightPoint > isoValue && topleftPoint < isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 2;
+            }
+            //case 3: bottomleft and bottomright inside
+            if (bottomleftPoint > isoValue && bottomrightPoint > isoValue && topleftPoint < isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 3;
+            }
+            //case 4: topright
+            if (bottomleftPoint < isoValue && bottomrightPoint < isoValue && topleftPoint < isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 4;
+            }
+            //case 5: topright and bottomleft
+            if (bottomleftPoint > isoValue && bottomrightPoint < isoValue && topleftPoint < isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 5;
+            }
+            //case 6: topright, bottomright
+            if (bottomleftPoint < isoValue && bottomrightPoint > isoValue && topleftPoint < isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 6;
+            }
+            //case 7: topright, both bottom
+            if (bottomleftPoint < isoValue && bottomrightPoint > isoValue && topleftPoint > isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 7;
+            }
+            //case 8: bottomleft
+            if (bottomleftPoint > isoValue && bottomrightPoint < isoValue && topleftPoint < isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 8;
+            }
+            //case 9: both left
+            if (bottomleftPoint > isoValue && bottomrightPoint < isoValue && topleftPoint > isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 9;
+            }
+            //case 10: topleft, bottomright
+            if (bottomleftPoint < isoValue && bottomrightPoint > isoValue && topleftPoint > isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 10;
+            }
+            //case 11: all but topright
+            if (bottomleftPoint > isoValue && bottomrightPoint > isoValue && topleftPoint > isoValue && toprightPoint < isoValue){
+                marchingSquaresEncoding[i][j] = 11;
+            }
+            //case 12: both top
+            if (bottomleftPoint < isoValue && bottomrightPoint < isoValue && topleftPoint > isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 12;
+            }
+            //case 13: all but bottomright
+            if (bottomleftPoint > isoValue && bottomrightPoint < isoValue && topleftPoint > isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 13;
+            }
+            //case 14: all but bottomleft
+            if (bottomleftPoint < isoValue && bottomrightPoint > isoValue && topleftPoint > isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 14;
+            }
+            //case 0: all inside
+            if (bottomleftPoint > isoValue && bottomrightPoint > isoValue && topleftPoint > isoValue && toprightPoint > isoValue){
+                marchingSquaresEncoding[i][j] = 15;
+            }
+        }
+
+
+
+    }
+    printf("done\n");
+}
+
 //keyboard: Handle key presses
 void keyboard(unsigned char key, int x, int y)
 {
@@ -662,9 +765,9 @@ void keyboard(unsigned char key, int x, int y)
         case '+': if(numcols < 255) numcols += 1; glui->sync_live(); break;
         case '-': if(numcols > 1)   numcols -= 1; glui->sync_live(); break;
         case 'q': exit(0);
+        case 'z': marchingSquaresEncoder(1); //TODO Remove: was for debugging purposes
     }
 }
-
 
 
 // drag: When the user drags with the mouse, add a force that corresponds to the direction of the mouse
@@ -694,50 +797,52 @@ void drag(int mx, int my)
 	lmx = mx; lmy = my;
 }
 
-void GLUI_interface(GLUI *glui){
 
-    GLUI_Checkbox   *checkboxScaling, *checkboxDirectionColoring, *checkboxDrawMatter, *checkboxHedgehogs;
-    GLUI_Spinner    *numberOfColours;
+void GLUI_interface(GLUI *glui) {
+
+    GLUI_Checkbox *checkboxScaling, *checkboxDirectionColoring, *checkboxDrawMatter, *checkboxHedgehogs;
+    GLUI_Spinner *numberOfColours;
     GLUI_RadioGroup *radio, *radio2, *radio3;
-    GLUI_EditText   *edittext, *edittext2, *textboxGlyphsX, *textboxGlyphsY;
+    GLUI_EditText *edittext, *edittext2, *textboxGlyphsX, *textboxGlyphsY;
 
     //GLUI *glui = GLUI_Master.create_glui( "Options", 0, 400, 50 ); /* name, flags, x, and y */
-    new GLUI_StaticText( glui, "Additional options visualization" );
-    new GLUI_Separator( glui );
+    new GLUI_StaticText(glui, "Additional options visualization");
+    new GLUI_Separator(glui);
     //checkbox = new GLUI_Checkbox( glui, "Cool color button!", &scalar_col, 1 );
-    numberOfColours  = new GLUI_Spinner( glui, "Segments colormap:", &numcols, 2);
-    numberOfColours->set_int_limits( 3, 256 );
+    numberOfColours = new GLUI_Spinner(glui, "Segments colormap:", &numcols, 2);
+    numberOfColours->set_int_limits(3, 256);
 
-	//new GLUI_StaticText( glui, minValueData);
+    //new GLUI_StaticText( glui, minValueData);
     //new GLUI_StaticText(glui, )
 
-    checkboxScaling = new GLUI_Checkbox( glui, "Use clamping (rather than scaling) (n)", &scalclam, 1 );
-    checkboxDirectionColoring = new GLUI_Checkbox( glui, "Toggle direction coloring (c)", &color_dir, 1 );
-    checkboxDrawMatter = new GLUI_Checkbox( glui, "Toggle drawing matter (x)", &draw_smoke, 1 );
-    checkboxHedgehogs = new GLUI_Checkbox( glui, "Toggle drawing hedgehogs (y)", &draw_vecs, 1 );
+    checkboxScaling = new GLUI_Checkbox(glui, "Use clamping (rather than scaling) (n)", &scalclam, 1);
+    checkboxDirectionColoring = new GLUI_Checkbox(glui, "Toggle direction coloring (c)", &color_dir, 1);
+    checkboxDrawMatter = new GLUI_Checkbox(glui, "Toggle drawing matter (x)", &draw_smoke, 1);
+    checkboxHedgehogs = new GLUI_Checkbox(glui, "Toggle drawing hedgehogs (y)", &draw_vecs, 1);
 
-	GLUI_Panel *obj_panel = new GLUI_Panel( glui, "Colormap type (m)" );
-	radio = new GLUI_RadioGroup( obj_panel, &scalar_col);
-	new GLUI_RadioButton( radio, "Black/white" );
-	new GLUI_RadioButton( radio, "Rainbow" );
-	new GLUI_RadioButton( radio, "Heatmap" );
+    GLUI_Panel *obj_panel = new GLUI_Panel(glui, "Colormap type (m)");
+    radio = new GLUI_RadioGroup(obj_panel, &scalar_col);
+    new GLUI_RadioButton(radio, "Black/white");
+    new GLUI_RadioButton(radio, "Rainbow");
+    new GLUI_RadioButton(radio, "Heatmap");
 
-    GLUI_Panel *obj_panel2 = new GLUI_Panel( glui, "Data to visualize (scalar field) (b)" );
-    radio2 = new GLUI_RadioGroup( obj_panel2, &scalar_field);
-    new GLUI_RadioButton( radio2, "Fluid density" );
-    new GLUI_RadioButton( radio2, "Fluid velocity magnitude" );
-    new GLUI_RadioButton( radio2, "Force field magnitude" );
+    GLUI_Panel *obj_panel2 = new GLUI_Panel(glui, "Data to visualize (scalar field) (b)");
+    radio2 = new GLUI_RadioGroup(obj_panel2, &scalar_field);
+    new GLUI_RadioButton(radio2, "Fluid density");
+    new GLUI_RadioButton(radio2, "Fluid velocity magnitude");
+    new GLUI_RadioButton(radio2, "Force field magnitude");
 
-	GLUI_Panel *obj_panel3 = new GLUI_Panel( glui, "Data to visualize (vector field) ()" );
-	radio3 = new GLUI_RadioGroup( obj_panel3, &vector_field_variable);
-	new GLUI_RadioButton( radio3, "Fluid velocity" );
-	new GLUI_RadioButton( radio3, "Force field" );
+    GLUI_Panel *obj_panel3 = new GLUI_Panel(glui, "Data to visualize (vector field) ()");
+    radio3 = new GLUI_RadioGroup(obj_panel3, &vector_field_variable);
+    new GLUI_RadioButton(radio3, "Fluid velocity");
+    new GLUI_RadioButton(radio3, "Force field");
 
-    edittext = new GLUI_EditText( glui, "Min value data points:", &minValueData, 3);
-    edittext2 = new GLUI_EditText( glui, "Max value data points:", &maxValueData, 3);
+    edittext = new GLUI_EditText(glui, "Min value data points:", &minValueData, 3);
+    edittext2 = new GLUI_EditText(glui, "Max value data points:", &maxValueData, 3);
 
-    textboxGlyphsX = new GLUI_EditText( glui, "Amount of glyphs X-axis:", &glyphsxAxis, 3);
-    textboxGlyphsY = new GLUI_EditText( glui, "Amount of glyphs Y-axis:", &glyphsyAxis, 3);
+    textboxGlyphsX = new GLUI_EditText(glui, "Amount of glyphs X-axis:", &glyphsxAxis, 3);
+    textboxGlyphsY = new GLUI_EditText(glui, "Amount of glyphs Y-axis:", &glyphsyAxis, 3);
+
 
 //    glui->sync_live();
 
@@ -760,30 +865,29 @@ void GLUI_interface(GLUI *glui){
 
 
 //main: The main program
-int main(int argc, char **argv)
-{
-	printf("Fluid Flow Simulation and Visualization:\n");
-	printf("=======================================\n");
-	printf("Click and drag the mouse to steer the flow!\n");
-	printf("T/t:   increase/decrease simulation timestep\n");
-	printf("S/s:   increase/decrease hedgehog scaling\n");
-	printf("c:     toggle direction coloring on/off\n");
-	printf("V/v:   increase decrease fluid viscosity\n");
-	printf("x:     toggle drawing matter on/off\n");
-	printf("y:     toggle drawing hedgehogs on/off\n");
-	printf("m:     toggle thru scalar coloring\n");
-	printf("a:     toggle the animation on/off\n");
-	printf("n	   toggle between scaling and clamping\n");
-	printf("b:     toggle through visualisations\n");
-	printf("+      increase colours in the colourmap\n");
-	printf("-      decrease colours in the colourmap\n");
-	printf("q:     quit\n\n");
+int main(int argc, char **argv) {
+    printf("Fluid Flow Simulation and Visualization:\n");
+    printf("=======================================\n");
+    printf("Click and drag the mouse to steer the flow!\n");
+    printf("T/t:   increase/decrease simulation timestep\n");
+    printf("S/s:   increase/decrease hedgehog scaling\n");
+    printf("c:     toggle direction coloring on/off\n");
+    printf("V/v:   increase decrease fluid viscosity\n");
+    printf("x:     toggle drawing matter on/off\n");
+    printf("y:     toggle drawing hedgehogs on/off\n");
+    printf("m:     toggle thru scalar coloring\n");
+    printf("a:     toggle the animation on/off\n");
+    printf("n	   toggle between scaling and clamping\n");
+    printf("b:     toggle through visualisations\n");
+    printf("+      increase colours in the colourmap\n");
+    printf("-      decrease colours in the colourmap\n");
+    printf("q:     quit\n\n");
 
 
-	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
-	glutInitWindowSize(500,500);
-	glutCreateWindow("Real-time smoke simulation and visualization");
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH);
+    glutInitWindowSize(500, 500);
+    glutCreateWindow("Real-time smoke simulation and visualization");
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutIdleFunc(do_one_simulation_step);
@@ -793,7 +897,7 @@ int main(int argc, char **argv)
 
     init_simulation(DIM);    //initialize the simulation data structures
 
-    glui = GLUI_Master.create_glui( "Options", 0, 400, 50 );
+    glui = GLUI_Master.create_glui("Options", 0, 400, 50);
     GLUI_interface(glui);
     glutMainLoop();            //calls do_one_simulation_step, keyboard, display, drag, reshape
     return 0;
